@@ -1,9 +1,8 @@
 var express = require('express');
 var router = express.Router();
 const axios = require('axios');
-const _ = require('lodash');
-const URL = `https://www.thecocktaildb.com/api/json/v1/1/filter.php?i=`;
-let drinkData = [];
+const {sortBy} = require('lodash');
+const drinksURL = `https://www.thecocktaildb.com/api/json/v1/1/filter.php?i=`;
 
 router.get('/api/drinks', (req, res) => {
   const {tags} = req.query
@@ -25,9 +24,10 @@ function errorMessage(res) {
     console.error('no tags exist')
 }
 
-function getPage(liquorChoice, res) {
-  axeHit(liquorChoice)
-  const sortedDrinks = _.sortBy(concatData(drinkData), 'strDrink')
+async function getPage(liquorChoice, res) {
+  const dbResponse = await getDrinksData(liquorChoice)
+  console.log(dbResponse)
+  const sortedDrinks = sortBy(dbResponse, 'strDrink')
   const uniqueDrinkData = sortedDrinks.reduce((acc, current) => {
     const x = acc.find(item => item['strDrink'] === current['strDrink']);
     if (!x) {
@@ -40,29 +40,19 @@ function getPage(liquorChoice, res) {
   res.send(finalDrinkData)
 }
 
-function axeHit(liquorChoice) {
-  liquorChoice.forEach((arg) => {
-    axios.get(`${URL}${arg}`)
-    .then(response => {
-      drinkData.push(response.data.drinks)
-    })
-    .catch(error => {
-      console.log(error);
-    });
-  })
-}
-
-function concatData(drinkData) {
-  if (drinkData.length === 2) {
-    drinkData = drinkData[0].concat(drinkData[1])
+async function getDrinksData(liquorChoice) {
+  try {
+    const promiseArray = liquorChoice.map((liquor) => axios.get(`${drinksURL}${liquor}`))
+    const response = await Promise.all(promiseArray)
+    const drinksArr = response.reduce((previous, current) => {
+      previous.push(...current.data.drinks)
+      return previous
+    }, [])
+    return drinksArr
   }
-  else if (drinkData.length === 3) {
-    drinkData = drinkData[0].concat(drinkData[1]).concat(drinkData[2])
+  catch(err) {
+    console.error(err, 'error')
   }
-  else if (drinkData.length === 4) {
-    drinkData = drinkData[0].concat(drinkData[1]).concat(drinkData[2]).concat(drinkData[3])
-  }
-  return drinkData
 }
 
 router.get('/', function(req, res, next) {
