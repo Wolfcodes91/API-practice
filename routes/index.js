@@ -16,10 +16,6 @@ router.get('/api/drinks', (req, res) => {
   }
 })
 
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
-
 function errorMessage(res) {
   res.send(
     {
@@ -68,5 +64,9 @@ function concatData(drinkData) {
   }
   return drinkData
 }
+
+router.get('/', function(req, res, next) {
+  res.render('index', { title: 'Express' });
+});
 
 module.exports = router;
